@@ -31,3 +31,4 @@ docker-compose up --build -d
 cd backend
 python -m unittest tests/test_risk_manager.py
 ```
+docker-compose up --build -d

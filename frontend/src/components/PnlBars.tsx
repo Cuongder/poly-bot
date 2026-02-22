@@ -1,45 +1,67 @@
 import React from 'react';
 
-interface PnlBarData {
-    label: string;
-    dir: 'UP' | 'DN';
-    pnl: number;
-    percentage: number; // 0 to 100
+interface Trade {
+  id: number;
+  direction: string;
+  net_pnl: number;
 }
 
 interface PnlBarsProps {
-    data: PnlBarData[];
+  trades: Trade[];
 }
 
-export function PnlBars({ data }: PnlBarsProps) {
-    if (!data || data.length === 0) return null;
+export function PnlBars({ trades }: PnlBarsProps) {
+  if (!trades || trades.length === 0) {
+    return (
+      <div className="mb-4 p-4 text-sm border border-gray-700 bg-gray-800 rounded text-gray-400">
+        No PnL data available
+      </div>
+    );
+  }
 
-    const renderBar = (pct: number) => {
-        // Console style block characters
-        const totalBlocks = 20;
-        const filledBlocks = Math.round((pct / 100) * totalBlocks);
-        const emptyBlocks = totalBlocks - filledBlocks;
+  // Get last 10 trades for visualization
+  const recentTrades = trades.slice(0, 10);
 
-        return '█'.repeat(Math.max(0, filledBlocks)) + '░'.repeat(Math.max(0, emptyBlocks));
-    };
+  // Find max absolute PnL for scaling
+  const maxPnL = Math.max(...recentTrades.map(t => Math.abs(t.net_pnl)), 1);
+
+  const renderBar = (pnl: number) => {
+    const percentage = (Math.abs(pnl) / maxPnL) * 100;
+    const totalBlocks = 20;
+    const filledBlocks = Math.round((percentage / 100) * totalBlocks);
+
+    const barChar = pnl >= 0 ? '█' : '█';
+    const colorClass = pnl >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
-        <div className="mb-4 p-4 text-sm border border-borderC bg-bgMain font-mono space-y-2">
-            {data.map((item, i) => (
-                <div key={i} className="flex justify-between items-center group">
-                    <div className="w-1/3 text-textPrimary">
-                        {item.label} <span className={item.dir === 'UP' ? 'text-success' : 'text-danger'}>
-                            {item.dir === 'UP' ? '▲ UP' : '▼ DN'}
-                        </span>
-                    </div>
-                    <div className="w-1/3 text-center tracking-widest text-[#58a6ff]">
-                        [{renderBar(item.percentage)}]
-                    </div>
-                    <div className={`w-1/3 text-right ${item.pnl >= 0 ? 'text-success' : 'text-danger'} font-bold`}>
-                        {item.pnl >= 0 ? '+' : '-'}${Math.abs(item.pnl).toFixed(2)}
-                    </div>
-                </div>
-            ))}
-        </div>
+      <span className={colorClass}>
+        {barChar.repeat(Math.max(0, filledBlocks))}
+      </span>
     );
+  };
+
+  return (
+    <div className="mb-4 p-4 text-sm border border-gray-700 bg-gray-800 font-mono space-y-2 rounded">
+      <div className="text-gray-400 mb-3 font-semibold">Recent Trade PnL</div>
+      {recentTrades.map((trade) => (
+        <div key={trade.id} className="flex justify-between items-center">
+          <div className="w-1/4 text-gray-300">
+            <span className="text-xs text-gray-500">#{trade.id}</span>
+            {' '}
+            <span className={trade.direction === 'YES' ? 'text-green-400' : 'text-red-400'}>
+              {trade.direction === 'YES' ? '▲' : '▼'}
+            </span>
+          </div>
+          <div className="w-1/2">
+            {renderBar(trade.net_pnl)}
+          </div>
+          <div className={`w-1/4 text-right font-bold ${
+            trade.net_pnl >= 0 ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {trade.net_pnl >= 0 ? '+' : '-'}${Math.abs(trade.net_pnl).toFixed(2)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }

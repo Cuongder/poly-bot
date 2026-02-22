@@ -13,9 +13,9 @@ class PolymarketClient:
         # We assume the user has placed the raw hex private_key or the mnemonic in ENV
         raw_key = os.getenv("PRIVATE-KEY")
         self.is_connected = False
-        self.wallet_address = "Loading..."
+        self.wallet_address = "0xDemo...Wallet"
         self.client = None
-        
+
         if raw_key:
             try:
                 raw_key = raw_key.strip().strip("'").strip('"')

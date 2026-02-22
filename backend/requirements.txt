@@ -11,3 +11,4 @@ requests==2.31.0
 py_clob_client
 eth_account
 web3
+pyjwt==2.8.0

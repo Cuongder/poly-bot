@@ -1,63 +1,91 @@
 import React from 'react';
 
-interface CategoryData {
-    market: string;
-    isStar?: boolean;
-    dir: 'UP' | 'DN';
-    trades: number;
-    w: number;
-    l: number;
-    winPct: number;
-    grossPnl: number;
-    fees: number;
-    netPnl: number;
+interface Trade {
+  id: number;
+  market: string;
+  direction: string;
+  entry_price: number;
+  exit_price: number | null;
+  fee_paid: number;
+  gross_pnl: number;
+  net_pnl: number;
+  status: string;
+  open_time: string;
 }
 
 interface CategoryTableProps {
-    data: CategoryData[];
+  trades: Trade[];
 }
 
-export function CategoryTable({ data }: CategoryTableProps) {
-    if (!data || data.length === 0) return null;
-
+export function CategoryTable({ trades }: CategoryTableProps) {
+  if (!trades || trades.length === 0) {
     return (
-        <div className="mb-4 text-sm border border-borderC bg-bgMain overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-                <thead className="bg-bgCard border-b border-borderC text-textSecondary">
-                    <tr>
-                        <th className="p-2 font-normal">MARKET</th>
-                        <th className="p-2 font-normal">DIR</th>
-                        <th className="p-2 font-normal">TRADES</th>
-                        <th className="p-2 font-normal">W/L</th>
-                        <th className="p-2 font-normal">WIN%</th>
-                        <th className="p-2 font-normal text-right">GROSS PNL</th>
-                        <th className="p-2 font-normal text-right">FEES</th>
-                        <th className="p-2 font-normal text-right">NET PNL</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-borderC text-textPrimary">
-                    {data.map((row, i) => (
-                        <tr key={i} className="hover:bg-bgCard">
-                            <td className="p-2">{row.market} {row.isStar && '★'}</td>
-                            <td className="p-2">
-                                <span className={row.dir === 'UP' ? 'text-success' : 'text-danger'}>
-                                    {row.dir === 'UP' ? '▲ UP' : '▼ DN'}
-                                </span>
-                            </td>
-                            <td className="p-2">{row.trades}</td>
-                            <td className="p-2">{row.w}W/{row.l}L</td>
-                            <td className="p-2">{row.winPct.toFixed(1)}%</td>
-                            <td className={`p-2 text-right ${row.grossPnl >= 0 ? 'text-success' : 'text-danger'}`}>
-                                {row.grossPnl >= 0 ? '+' : '-'}${Math.abs(row.grossPnl).toFixed(2)}
-                            </td>
-                            <td className="p-2 text-right text-danger">-${Math.abs(row.fees).toFixed(2)}</td>
-                            <td className={`p-2 text-right font-bold ${row.netPnl >= 0 ? 'text-success' : 'text-danger'}`}>
-                                {row.netPnl >= 0 ? '+' : '-'}${Math.abs(row.netPnl).toFixed(2)}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+      <div className="mb-4 text-sm border border-gray-700 bg-gray-800 rounded p-4 text-gray-400">
+        No trade history available
+      </div>
     );
+  }
+
+  // Show recent trades (last 10)
+  const recentTrades = trades.slice(0, 10);
+
+  const formatTime = (timeStr: string) => {
+    return new Date(timeStr).toLocaleString();
+  };
+
+  return (
+    <div className="mb-4 text-sm border border-gray-700 bg-gray-800 overflow-x-auto rounded">
+      <div className="p-3 bg-gray-700/50 border-b border-gray-700 font-semibold text-gray-300">
+        Recent Trades
+      </div>
+      <table className="w-full text-left border-collapse">
+        <thead className="bg-gray-700/30 border-b border-gray-700 text-gray-400 text-xs">
+          <tr>
+            <th className="p-2 font-normal">ID</th>
+            <th className="p-2 font-normal">TIME</th>
+            <th className="p-2 font-normal">DIR</th>
+            <th className="p-2 font-normal">ENTRY</th>
+            <th className="p-2 font-normal">EXIT</th>
+            <th className="p-2 font-normal">STATUS</th>
+            <th className="p-2 font-normal text-right">FEE</th>
+            <th className="p-2 font-normal text-right">PNL</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-700 text-gray-200">
+          {recentTrades.map((trade) => (
+            <tr key={trade.id} className="hover:bg-gray-700/30">
+              <td className="p-2 font-mono text-xs">#{trade.id}</td>
+              <td className="p-2 text-xs">{formatTime(trade.open_time)}</td>
+              <td className="p-2">
+                <span className={trade.direction === 'YES' ? 'text-green-400' : 'text-red-400'}>
+                  {trade.direction === 'YES' ? '▲ YES' : '▼ NO'}
+                </span>
+              </td>
+              <td className="p-2 font-mono">{trade.entry_price.toFixed(4)}</td>
+              <td className="p-2 font-mono">
+                {trade.exit_price ? trade.exit_price.toFixed(4) : '-'}
+              </td>
+              <td className="p-2">
+                <span className={`px-2 py-0.5 rounded text-xs ${
+                  trade.status === 'CLOSED'
+                    ? 'bg-gray-700 text-gray-300'
+                    : 'bg-yellow-900/50 text-yellow-400'
+                }`}>
+                  {trade.status}
+                </span>
+              </td>
+              <td className="p-2 text-right text-red-400 font-mono">
+                ${trade.fee_paid.toFixed(2)}
+              </td>
+              <td className={`p-2 text-right font-bold font-mono ${
+                trade.net_pnl >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {trade.net_pnl >= 0 ? '+' : '-'}${Math.abs(trade.net_pnl).toFixed(2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }

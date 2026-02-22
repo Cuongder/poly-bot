@@ -1,52 +1,118 @@
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
-interface ChartsProps {
-    data: any[];
+interface Trade {
+  id: number;
+  net_pnl: number;
+  open_time: string;
 }
 
-// Mocking chart data based on requirements
-const mockChartData = [
-    { time: '00:00', equity: 10000, dd: 0 },
-    { time: '04:00', equity: 10100, dd: -10 },
-    { time: '08:00', equity: 10050, dd: -50 },
-    { time: '12:00', equity: 10200, dd: -20 },
-    { time: '16:00', equity: 10400, dd: 0 },
-    { time: '20:00', equity: 10350, dd: -50 },
-    { time: '24:00', equity: 10600, dd: 0 },
-];
+interface ChartsProps {
+  trades: Trade[];
+}
 
-export function Charts({ data = mockChartData }: ChartsProps) {
-    return (
-        <div className="mb-4 border border-borderC bg-bgCard p-4">
-            <div className="text-sm text-textSecondary mb-4">EQUITY CURVE (Past 24h)</div>
-            <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#30363d" />
-                        <XAxis dataKey="time" stroke="#8b949e" tick={{ fontSize: 12, fill: '#8b949e' }} />
-                        <YAxis
-                            yAxisId="left"
-                            stroke="#3fb950"
-                            tick={{ fontSize: 12, fill: '#3fb950' }}
-                            domain={['auto', 'auto']}
-                        />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#161b22', borderColor: '#30363d', color: '#c9d1d9' }}
-                            itemStyle={{ color: '#3fb950' }}
-                        />
-                        <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="equity"
-                            stroke="#3fb950"
-                            strokeWidth={2}
-                            dot={false}
-                            activeDot={{ r: 6 }}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
+export function Charts({ trades }: ChartsProps) {
+  // Calculate equity curve from trades
+  const calculateEquityCurve = () => {
+    if (!trades || trades.length === 0) {
+      return [{ time: 'Start', equity: 100, drawdown: 0 }];
+    }
+
+    // Sort trades by time
+    const sortedTrades = [...trades].sort((a, b) =>
+      new Date(a.open_time).getTime() - new Date(b.open_time).getTime()
     );
+
+    let equity = 100; // Starting balance
+    let peak = equity;
+    const data = [];
+
+    for (const trade of sortedTrades) {
+      equity += trade.net_pnl;
+      if (equity > peak) peak = equity;
+      const drawdown = ((peak - equity) / peak) * 100;
+
+      data.push({
+        time: new Date(trade.open_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        equity: parseFloat(equity.toFixed(2)),
+        drawdown: parseFloat(drawdown.toFixed(2))
+      });
+    }
+
+    return data;
+  };
+
+  const chartData = calculateEquityCurve();
+
+  return (
+    <div className="mb-4 border border-gray-700 bg-gray-800 p-4 rounded">
+      <div className="text-sm text-gray-400 mb-4 font-semibold">EQUITY CURVE</div>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis
+              dataKey="time"
+              stroke="#9ca3af"
+              tick={{ fontSize: 12, fill: '#9ca3af' }}
+            />
+            <YAxis
+              yAxisId="left"
+              stroke="#22c55e"
+              tick={{ fontSize: 12, fill: '#22c55e' }}
+              domain={['auto', 'auto']}
+              tickFormatter={(value) => `$${value}`}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#1f2937',
+                borderColor: '#374151',
+                color: '#f3f4f6'
+              }}
+              itemStyle={{ color: '#22c55e' }}
+              formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Equity']}
+            />
+            <Area
+              yAxisId="left"
+              type="monotone"
+              dataKey="equity"
+              stroke="#22c55e"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorEquity)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {chartData.length > 1 && (
+        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+          <div>
+            <span className="text-xs text-gray-500 block">Start Balance</span>
+            <span className="text-gray-300 font-mono">${chartData[0].equity.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-xs text-gray-500 block">Current Balance</span>
+            <span className="text-gray-300 font-mono">${chartData[chartData.length - 1].equity.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-xs text-gray-500 block">Total Return</span>
+            <span className={`font-mono ${
+              chartData[chartData.length - 1].equity >= chartData[0].equity
+                ? 'text-green-400'
+                : 'text-red-400'
+            }`}>
+              {((chartData[chartData.length - 1].equity / chartData[0].equity - 1) * 100).toFixed(2)}%
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
